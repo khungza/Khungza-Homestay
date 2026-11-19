@@ -1337,7 +1337,7 @@ function openRoomForm(id) {
       <div class="grid2"><label class="f"><span>ชื่อห้อง</span><input class="in" name="name" value="${esc(r.name)}" required></label>
       <label class="f"><span>ประเภท (เช่น ห้องแอร์, บ้านพัก)</span><input class="in" name="type" value="${esc(r.type)}"></label></div>
       <div class="grid3"><label class="f"><span>ราคา / คืน (บาท)</span><input class="in" type="number" min="0" name="price" value="${esc(r.price)}" required></label>
-      <label class="f"><span>รองรับสูงสุด (ท่าน)</span><input class="in" type="number" min="1" name="capacity" value="${esc(r.capacity)}" required></label>
+      <label class="f"><span>รองรับสูงสุด (ท่าน) / ห้อง</span><input class="in" type="number" min="1" name="capacity" value="${esc(r.capacity)}" required></label>
       <label class="f"><span>จำนวนห้องประเภทนี้</span><input class="in" type="number" min="1" name="qty" value="${esc(r.qty)}" required></label></div>
       <label class="f"><span>รายละเอียด</span><textarea class="in" name="description" rows="3">${esc(r.description)}</textarea></label>
       <label class="f"><span>สิ่งอำนวยความสะดวก (คั่นด้วยเครื่องหมายจุลภาค ,)</span><input class="in" name="amenities" value="${esc(r.amenities)}" placeholder="แอร์, Wi-Fi, เครื่องทำน้ำอุ่น"></label>
