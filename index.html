@@ -377,6 +377,8 @@ a.btn.bk-off{cursor:not-allowed}
 .md>h3.warn-h{display:flex;align-items:center;gap:10px;color:#c8102e;font-size:20px;padding-right:0}
 .warn-h svg{flex:none}
 .warn-b{font-size:16px;line-height:1.6;margin-bottom:12px}
+.lnk-btn{border:0;background:none;padding:4px 8px;font-family:var(--fh);font-size:14.5px;color:var(--green2);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.lnk-btn:hover{color:var(--gold2)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -581,7 +583,7 @@ async function uploadFiles(files) {
  *  PUBLIC SITE
  * ============================================================ */
 function init() {
-  api('getPublic').then(d => { state.pub = d; renderPublic(); }).catch(e => {
+  api('getPublic').then(d => { state.pub = d; renderPublic(); handleResetLink(); }).catch(e => {
     $('#pub').innerHTML = `<div class="wrap" style="padding:100px 0;text-align:center"><h2>โหลดข้อมูลไม่สำเร็จ</h2><p class="muted">${esc(e.message)}</p><button class="btn primary" data-act="reload">ลองอีกครั้ง</button></div>`;
   });
 }
@@ -1094,7 +1096,8 @@ function openLogin() {
     <h3 style="text-align:center;padding:0">เข้าสู่ระบบหลังบ้าน</h3>
     <p class="muted" style="text-align:center">สำหรับเจ้าของที่พักเท่านั้น</p>
     <form id="login-form"><label class="f"><span>รหัสผ่าน</span><input class="in" type="password" name="pw" autocomplete="current-password" required autofocus></label>
-    <button class="btn primary" style="width:100%">เข้าสู่ระบบ</button></form>`, 'sm');
+    <button class="btn primary" style="width:100%">เข้าสู่ระบบ</button></form>
+    <div style="text-align:center;margin-top:12px"><button type="button" class="lnk-btn" data-act="forgot-open">ลืมรหัสผ่าน?</button></div>`, 'sm');
   $('#login-form').onsubmit = async e => {
     e.preventDefault();
     const btn = e.target.querySelector('button'); btn.disabled = true;
@@ -1105,6 +1108,74 @@ function openLogin() {
     } catch (err) { fail(err); btn.disabled = false; e.target.pw.select(); }
   };
   setTimeout(() => { const i = $('#login-form input'); if (i) i.focus(); }, 40);
+}
+
+/* ---------- ลืมรหัสผ่าน: ขอลิงก์ตั้งรหัสผ่านใหม่ส่งเข้าอีเมลโฮมสเตย์ ---------- */
+function openForgot() {
+  openModal(`${xBtn}<div style="text-align:center;color:var(--green);margin-bottom:6px">${ic('mail', 48)}</div>
+    <h3 style="text-align:center;padding:0">ลืมรหัสผ่าน</h3>
+    <div id="fg-body">
+      <p class="muted" style="text-align:center">ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของโฮมสเตย์ ลิงก์ใช้ได้ครั้งเดียวและมีอายุจำกัด</p>
+      <button type="button" class="btn primary" style="width:100%" id="fg-send">ส่งลิงก์ตั้งรหัสผ่านใหม่</button>
+      <div style="text-align:center;margin-top:12px"><button type="button" class="lnk-btn" data-act="login-open">กลับไปหน้าเข้าสู่ระบบ</button></div>
+    </div>`, 'sm');
+  $('#fg-send').onclick = async () => {
+    const btn = $('#fg-send'); btn.disabled = true; btn.textContent = 'กำลังส่งอีเมล…';
+    try {
+      const r = await api('forgotPassword');
+      const b = $('#fg-body'); if (!b) return;
+      b.innerHTML = `<div class="okbox"><div class="tick">${ic('check', 34)}</div>
+        <p style="margin-bottom:6px"><b>ส่งลิงก์ไปที่ ${esc(r.sentTo)} แล้ว</b></p>
+        <p class="muted">ลิงก์ใช้ได้ครั้งเดียว ภายใน ${esc(r.minutes)} นาที<br>หากไม่พบอีเมล โปรดตรวจสอบโฟลเดอร์สแปม</p>
+        <button type="button" class="btn ghost" style="width:100%" data-act="login-open">กลับไปหน้าเข้าสู่ระบบ</button></div>`;
+    } catch (err) { fail(err); btn.disabled = false; btn.textContent = 'ส่งลิงก์ตั้งรหัสผ่านใหม่'; }
+  };
+}
+
+/* ---------- เปิดลิงก์จากอีเมล (?reset=...) → ฟอร์มตั้งรหัสผ่านใหม่ ---------- */
+function handleResetLink() {
+  let t = '';
+  try {
+    const u = new URL(location.href);
+    t = (u.searchParams.get('reset') || '').trim();
+    if (u.searchParams.has('reset')) {   // ลบโทเคนออกจาก URL ทันที
+      u.searchParams.delete('reset');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    }
+  } catch (e) { /* ignore */ }
+  if (t) openResetPassword(t);
+}
+
+async function openResetPassword(token) {
+  try { await api('checkResetToken', { token: token }); }
+  catch (err) {
+    openModal(`${xBtn}<div style="text-align:center;color:var(--red);margin-bottom:6px">${ic('x', 48)}</div>
+      <h3 style="text-align:center;padding:0">ลิงก์ใช้ไม่ได้</h3>
+      <p class="muted" style="text-align:center">${esc(err.message)}</p>
+      <button type="button" class="btn primary" style="width:100%" data-act="forgot-open">ขอลิงก์ใหม่</button>`, 'sm');
+    return;
+  }
+  openModal(`${xBtn}<div style="text-align:center;color:var(--green);margin-bottom:6px">${HOUSE(56)}</div>
+    <h3 style="text-align:center;padding:0">ตั้งรหัสผ่านใหม่</h3>
+    <p class="muted" style="text-align:center">กรอกรหัสผ่านใหม่สำหรับเข้าสู่ระบบหลังบ้าน</p>
+    <form id="rs-form" novalidate>
+      <label class="f"><span>รหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)</span><input class="in" type="password" name="pw" autocomplete="new-password" minlength="8" required></label>
+      <label class="f"><span>ยืนยันรหัสผ่านใหม่</span><input class="in" type="password" name="pw2" autocomplete="new-password" minlength="8" required></label>
+      <button class="btn primary" style="width:100%">ตั้งรหัสผ่านใหม่</button>
+    </form>`, 'sm');
+  $('#rs-form').onsubmit = async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('button');
+    if (f.pw.value.length < 8) return toast('รหัสผ่านใหม่ต้องยาวอย่างน้อย 8 ตัวอักษร', 'err');
+    if (f.pw.value !== f.pw2.value) return toast('รหัสผ่านทั้งสองช่องไม่ตรงกัน', 'err');
+    btn.disabled = true;
+    try {
+      await api('resetPassword', { token: token, password: f.pw.value });
+      toast('ตั้งรหัสผ่านใหม่แล้ว กรุณาเข้าสู่ระบบ', 'ok');
+      openLogin();
+    } catch (err) { fail(err); btn.disabled = false; }
+  };
+  setTimeout(() => { const i = $('#rs-form input'); if (i) i.focus(); }, 40);
 }
 
 async function enterAdmin() {
@@ -1550,6 +1621,8 @@ const H = {
   'adm-menu': () => { const sd = $('.side'); if (sd) sd.classList.toggle('open'); },
   copy: el => copyText(el.dataset.text),
   'open-admin': () => enterAdmin(),
+  'forgot-open': () => openForgot(),
+  'login-open': () => openLogin(),
   lookup: () => { setMenu(false); openLookup(); },
   'clear-avail': () => { state.avail = null; drawRooms(); },
   'room-detail': el => openRoom(el.dataset.id),
